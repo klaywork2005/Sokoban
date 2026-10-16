@@ -13,8 +13,8 @@ public class LevelRenderer extends JPanel {
 
   public LevelRenderer(List<String> level) {
     this.level = level;
-    setBackground(Color.BLACK);
-
+    setBackground(Color.BLUE);
+    
   }
 
   @Override
@@ -62,7 +62,7 @@ public class LevelRenderer extends JPanel {
           g.fillRect(x + 8, y + 8, TILE_SIZE - 16, TILE_SIZE - 16);
         }
         else if (tile == '@') {
-          g.setColor(Color.YELLOW);
+          g.setColor(Color.MAGENTA);
           g.fillOval(x + TILE_SIZE/4, y + TILE_SIZE/4, TILE_SIZE/2, TILE_SIZE/2);
         } 
         else if (tile == '#') {
