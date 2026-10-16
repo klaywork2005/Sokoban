@@ -1,0 +1,70 @@
+=====================================================================
+SOKOBAN (JAVA): SETUP GUIDE + CHECKLIST
+=====================================================================
+
+     mvn compile exec:java     run the app
+     mvn test                  run tests
+
+
+Suggested structure (you write the classes):
+  src/main/java/sokoban/        Main, Dir, State, Level, LevelLoader, Game, GamePanel
+  src/main/java/sokoban/solver/ Solver interface + each solver version
+  src/main/resources/levels.txt level data
+  src/test/java/sokoban/        tests
+
+Design tips:
+  - Use Swing (ships with the JDK, no extra setup).
+  - Keep the rules in one pure function (state + direction -> new state or
+    null). The solver will call the same function later.
+  - Make the state immutable with equals/hashCode so it works in a HashSet.
+  - Encode positions as row * cols + col.
+
+Level file format (XSB). Blank line between levels, ";" starts a comment:
+  #  wall     (space) floor     .  goal
+  $  box      @  player         *  box on goal     +  player on goal
+Get real levels (e.g. Microban, freely distributable with credit) for
+testing and benchmarking.
+
+---------------------------------------------------------------------
+PART 2: CHECKLIST
+---------------------------------------------------------------------
+DAY 1: THE GAME
+[ ] Setup steps 1-7 done, empty project builds
+[ ] Parse a level file into walls, goals, boxes, player
+[ ] Immutable State with equals/hashCode
+[ ] Move rule: walk, push a box, block on wall, block on box-behind-box
+[ ] Win check (all boxes on goals)
+[ ] Game wrapper: move counter, push counter, undo, restart
+[ ] Swing window that draws the board (walls, floor, goals, boxes, player)
+[ ] Keyboard controls (arrows/WASD, undo, restart, next/prev level)
+[ ] "Solved" message on win
+[ ] Load 10+ real levels
+[ ] Unit tests for the move rule and win check
+[ ] Commit and push
+
+DAY 2: SOLVER BASICS
+[ ] Solver interface returning path, nodes expanded, time
+[ ] Plain BFS (your baseline numbers)
+[ ] Canonical player position (same boxes + same reachable region = same state)
+[ ] Push-based search (each edge = one box push)
+[ ] Tests that solutions replay correctly on the real game rules
+
+DAY 3: SMARTER + VISIBLE
+[ ] Dead squares (reverse search from goals) to prune pushes
+[ ] Freeze deadlock detection
+[ ] A* with a box-to-goal distance heuristic
+[ ] Solve button running on a background thread (SwingWorker)
+[ ] Animate the found solution on the board
+[ ] Show nodes, time, and move count in the UI
+
+DAY 4: PROOF + POLISH
+[ ] Benchmark runner over a full level set
+[ ] Results table: solver version | levels solved | avg nodes | avg ms
+[ ] README: what it is, GIF of the solver, benchmark table, how to run
+[ ] Clean up code, final commit
+[ ] Resume bullet with real numbers
+[ ] Optional: package a runnable JAR
+
+If time runs short: ship Day 1-2 plus dead squares and the benchmark.
+A clean, measured result beats an unfinished advanced solver.
+=====================================================================
