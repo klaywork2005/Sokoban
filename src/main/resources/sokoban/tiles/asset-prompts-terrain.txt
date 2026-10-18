@@ -1,0 +1,26 @@
+Terrain assets generated with built-in image_gen imagegen tool, default mode.
+Intent: generate. No references. Opaque PNG files copied unchanged into the repository.
+
+wall.png
+Use case: stylized-concept
+Asset type: single seamless terrain tile PNG for a top-down pixel-art Sokoban warehouse game.
+Primary request: Full-bleed square texture of dark reddish brown warehouse bricks in staggered rows with dark brown mortar. The entire square is the tile itself.
+Style/medium: authentic very low resolution pixel art, as though drawn at 32 by 32 source pixels then enlarged with nearest-neighbor. Each visible pixel must be a large uniform square with hard edges. Limited palette of 7 dark brown, oxblood, burnt umber, and muted terracotta colors. Two rows of broad staggered bricks, restrained warm top-edge highlights and tiny sparse chips.
+Composition/framing: flat straight-on orthographic texture, seamlessly repeatable on all four edges, completely fills the square, no margin. Reads clearly when rendered 48 pixels wide.
+Constraints: no text, labels, watermark, objects, background scenery, borders around the whole tile, perspective, isometric view, gradients, antialiasing, smooth shading, photorealism, or small fine-grained noise.
+
+floor.png
+Use case: stylized-concept
+Asset type: single seamless terrain tile PNG for a top-down pixel-art Sokoban warehouse game.
+Primary request: Full-bleed square texture of light sandy blond wood floor planks inside a warehouse. The entire square is the tile itself.
+Style/medium: authentic very low resolution pixel art, as though drawn at 32 by 32 source pixels then enlarged with nearest-neighbor. Each visible pixel must be a large uniform square with hard edges. Limited palette of 6 light warm sand, cream, pale honey and muted tan colors. Four horizontal wood boards with subtle staggered end joints, thin muted tan seams, sparse tiny horizontal wood-grain streaks. Low contrast quiet surface, much lighter than dark reddish-brown brick walls.
+Composition/framing: directly overhead flat orthographic texture, seamless repeat in all directions, completely fills the square, no margin. Reads clearly when rendered 48 pixels wide.
+Constraints: no text, labels, watermark, objects, background scenery, heavy borders, dark black joints, perspective, isometric view, gradients, antialiasing, smooth shading, photorealism, or fine noisy texture.
+
+concrete.png
+Use case: stylized-concept
+Asset type: single seamless terrain tile PNG for a top-down pixel-art Sokoban warehouse game.
+Primary request: Full-bleed square muted warm cement gray outside pavement texture. The entire square is the tile itself.
+Style/medium: authentic very low resolution pixel art, as though drawn at 32 by 32 source pixels then enlarged with nearest-neighbor. Each visible pixel must be a large uniform square with hard edges. Limited palette of 5 medium warm gray colors, all similar in brightness. Extremely restrained sparse coarse pixel clusters suggest worn cement. Calm understated surface, slightly darker than light sand wood floor.
+Composition/framing: directly overhead flat orthographic seamless repeating texture on all edges, completely fills the square, no margin. Reads clearly when rendered 48 pixels wide.
+Constraints: no tile grid, strong cracks, text, labels, watermark, objects, scenery, border, perspective, isometric view, gradients, antialiasing, smooth shading, photorealism, or busy detailed noise.

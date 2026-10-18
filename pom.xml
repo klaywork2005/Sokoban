@@ -4,15 +4,18 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <!-- Maven coordinates identify this project and its built artifact. -->
     <groupId>org.columpio</groupId>
     <artifactId>Sokoban</artifactId>
     <version>1.0.0</version>
 
+    <!-- Compile against Java 21 APIs and read source files as UTF-8. -->
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <dependencies>
+        <!-- JUnit supplies test annotations and assertions only for test code. -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -22,11 +25,19 @@
     </dependencies>
     <build>
         <plugins>
+            <!-- Pin the compiler so Maven consistently uses the Java release above. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.15.0</version>
+            </plugin>
+            <!-- Discover and run the JUnit tests during mvn test. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
             </plugin>
+            <!-- Launch the Swing entry point with mvn exec:java after compilation. -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
