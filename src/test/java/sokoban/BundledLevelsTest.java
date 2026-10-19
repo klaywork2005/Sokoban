@@ -43,19 +43,6 @@ class BundledLevelsTest {
     }
 
     @Test
-    void noBundledLevelStartsWithAStuckBox() throws IOException {
-        LevelLoader loader = new LevelLoader();
-        List<List<String>> all = new ArrayList<>(loader.loadResource("/original-levels.txt"));
-        all.addAll(loader.loadResource("/microban.txt"));
-
-        // Every bundled level can be won, so a stuck-box warning at the start would be wrong.
-        for (int index = 0; index < all.size(); index++) {
-            assertFalse(DeadlockDetector.hasStuckBox(all.get(index)),
-                    "Level " + (index + 1) + " is reported stuck before the first move.");
-        }
-    }
-
-    @Test
     void theGameCanHoldBothCollectionsTogether() throws IOException {
         LevelLoader loader = new LevelLoader();
         List<List<String>> original = loader.loadResource("/original-levels.txt");

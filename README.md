@@ -10,7 +10,6 @@ and keep your move count low.
 - A title screen with Play and Quit buttons.
 - 206 levels in one pool: the 51-level **Original** set followed by the 155-level **Microban** set.
 - **Undo** (`Z`) takes back as many moves as you like, so you can try an idea without starting over.
-- A **stuck warning**: a box that can never reach a goal again turns red and the status bar says so.
 - A **level generator** with **Easy, Medium and Hard** settings. Every level it makes is guaranteed to be solvable.
 - Keyboard play with WASD or the arrow keys, plus shortcuts for undo, restart, next/previous level and music.
 - Scoring: every attempt starts at 500,000 points and each move on the board costs 50.
@@ -88,16 +87,6 @@ the solution you ended up with. A finished level is frozen: it cannot be undone 
 The status bar at the bottom shows the current level, moves, score, and your best score and
 fewest moves for that level. Completed levels are marked in the dropdown.
 
-![A box pushed into a corner turns red and the status bar warns that the player is stuck](docs/stuck-warning.png)
-
-### Stuck warning
-
-When a box ends up somewhere it can never reach a goal (for example a corner), it is tinted red
-and the last line of the status bar says **Stuck!**. Press `Z` to undo the mistake. The warning is
-careful: it only fires for boxes that really are lost, but it cannot spot every kind of
-deadlock, so no warning does not guarantee a level can still be won. See
-[How the stuck warning works](#how-the-stuck-warning-works) below.
-
 ### Generated levels
 
 **Generate Level** builds a new level at the chosen difficulty and puts it at the end of the level
@@ -142,12 +131,11 @@ docs/                           Screenshots used by this README
 | `BoardRules` | The rules of Sokoban as pure functions: moving, pushing, and detecting a win. |
 | `State` | The shared game data: saved levels, selected level, the board being played, and the history of boards that makes undo possible. No UI or file access. |
 | `GameLogic` | Applies player actions to the `State`: moving, undoing, choosing levels. Tracks completion, records results, and names every level. No Swing code. |
-| `DeadlockDetector` | Finds boxes that can never reach a goal again. Pure functions on a board, no Swing code. |
 | `LevelCollection` | Remembers how many levels each level file contributed, so every level gets a display name and a stable save key. |
 | `PlayerProgress` / `PlayerRecord` | The player's best score and fewest moves per completed level, in memory. |
 | `ProgressStore` | Saves and loads `PlayerProgress` as a properties file. |
 | `GameWindow` | Builds the controls, handles input and shortcuts, calls game actions, and refreshes the display. |
-| `LevelRenderer` | Draws the current board, including the red tint on stuck boxes. It only reads game data. |
+| `LevelRenderer` | Draws the current board. It only reads game data. |
 | `WarehouseLayout` | Works out which squares are walls and which are outdoors, from the saved level. |
 | `WarehouseSprites` | Loads the PNG artwork once and scales it to one tile size. |
 | `LevelGenerator` | Makes new solvable levels by playing a finished level backwards. No Swing code. |
@@ -242,34 +230,11 @@ The difficulty settings are just different numbers fed into the same recipe (see
 a bigger room, more boxes and more pulls give a harder puzzle. A test checks that harder
 settings really do produce longer solutions on average.
 
-## How the stuck warning works
-
-`DeadlockDetector` looks for two kinds of lost box. It only ever looks at the board in front of
-it, and it ignores the player.
-
-1. **A box on a dead square.** A square is *live* if a box standing on it could, in the best
-   case, be pushed all the way to some goal. The detector finds the live squares by working
-   **backwards from the goals** with a breadth-first search, exactly like the generator's pulls:
-   a goal is live, and a square is live if a box there can be pushed onto a live square (the box
-   needs a non-wall square to land on, and the player needs a non-wall square to push from).
-   Other boxes are ignored, because they might be moved. Every square that never becomes live is
-   dead, and a box on a dead square can never be saved. Corners are always dead, and so are squares
-   along a wall that has no goal on it.
-2. **A frozen block.** If a box is part of a 2 by 2 block where every square is a wall or a box,
-   none of them can ever be pushed, because there is never room to stand behind one.
-
-Both checks are *sound*: they never blame a box that can still be saved, because a lost box
-is only reported when even the best possible play cannot rescue it. `DeadlockDetectorTest`
-checks this by replaying generated solutions at every difficulty and confirming that no position
-along the way is ever flagged, and `BundledLevelsTest` confirms none of the 206 bundled levels
-starts out flagged. The detector is not *complete*: some deadlocks need cleverer checks, so
-"nothing reported" does not mean "still winnable".
-
 ## Testing
 
 `mvn test` runs the JUnit 5 tests, which cover the rules, state and undo, scoring and saved
 records, level loading (including every bundled level), the generator (every generated level is
-replayed to prove it can be solved), the stuck detector, and the pieces of the window that can be
+replayed to prove it can be solved), and the pieces of the window that can be
 tested without a display. Game rules and level generation have no Swing code, so they are tested
 directly without opening a window.
 

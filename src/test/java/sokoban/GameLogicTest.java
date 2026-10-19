@@ -371,27 +371,6 @@ class GameLogicTest {
     }
 
     // ------------------------------------------------------------------------------
-    // Stuck boxes
-    // ------------------------------------------------------------------------------
-
-    @Test
-    void pushingABoxIntoADeadEndIsReportedAndUndoClearsTheWarning() {
-        // Pushing the box left puts it against the left wall, and no goal can be reached from
-        // there.
-        State state = new State(List.of(List.of(
-                "######", "#  . #", "# $  #", "#  @ #", "######")));
-        GameLogic game = new GameLogic(state);
-        assertFalse(game.hasStuckBox());
-
-        game.moveCharacter(-1, 0); // Step up so the player is beside the box.
-        game.moveCharacter(0, -1); // Push the box left, against the wall.
-        assertTrue(game.hasStuckBox());
-
-        game.undoMove();
-        assertFalse(game.hasStuckBox());
-    }
-
-    // ------------------------------------------------------------------------------
     // Moving between levels
     // ------------------------------------------------------------------------------
 

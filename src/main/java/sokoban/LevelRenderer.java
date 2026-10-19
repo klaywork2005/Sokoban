@@ -37,8 +37,6 @@ public final class LevelRenderer extends JPanel {
     private static final Color FLOOR_SHADOW = new Color(67, 42, 25, 45); // Translucent.
     // The dark outline drawn around a goal's white dot.
     private static final Color GOAL_OUTLINE = new Color(103, 82, 57);
-    // A red wash over a box that can never reach a goal. The last number makes it see-through.
-    private static final Color STUCK_TINT = new Color(220, 20, 20, 110);
 
     // All renderers share one set of decoded images.
     private static final WarehouseSprites SPRITES = new WarehouseSprites();
@@ -130,18 +128,6 @@ public final class LevelRenderer extends JPanel {
                     drawFloorAndOccupant(canvas, row, column, x, y, tileSize);
                 }
             }
-        }
-        drawStuckBoxes(canvas, offsetX, offsetY, tileSize);
-    }
-
-    /** Wash every box that can never reach a goal in red, as a warning to the player. */
-    private void drawStuckBoxes(Graphics2D canvas, int offsetX, int offsetY, int tileSize) {
-        List<DeadlockDetector.Square> stuckBoxes =
-                DeadlockDetector.findStuckBoxes(state.getBoardSnapshot());
-        canvas.setColor(STUCK_TINT);
-        for (DeadlockDetector.Square box : stuckBoxes) {
-            canvas.fillRect(offsetX + box.column() * tileSize, offsetY + box.row() * tileSize,
-                    tileSize, tileSize);
         }
     }
 

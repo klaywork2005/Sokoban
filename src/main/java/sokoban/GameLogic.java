@@ -163,11 +163,6 @@ public final class GameLogic {
         return state.undoMove();
     }
 
-    /** True if some box can never reach a goal again, so this attempt cannot be won. */
-    public boolean hasStuckBox() {
-        return DeadlockDetector.hasStuckBox(state.getBoardSnapshot());
-    }
-
     /** Start the next level in the list, if there is one. Returns false at the last level. */
     public boolean selectNextLevel() {
         int next = state.getCurrentLevelIndex() + 1;

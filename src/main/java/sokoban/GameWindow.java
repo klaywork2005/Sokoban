@@ -398,9 +398,6 @@ public final class GameWindow extends JFrame {
             }
             return "Solved! Press N for the next level.";
         }
-        if (game.hasStuckBox()) {
-            return "Stuck! A box can never reach a goal now. Press Z to undo.";
-        }
         return "";
     }
 
