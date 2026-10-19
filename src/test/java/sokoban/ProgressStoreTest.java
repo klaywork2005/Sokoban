@@ -31,13 +31,15 @@ class ProgressStoreTest {
         store.save(game.getProgress());
 
         PlayerProgress loaded = store.load();
-        assertEquals(new PlayerRecord(9_950, 1), loaded.getRecord("/original-levels.txt:1"));
+        int scoreAfterOneMove = State.STARTING_SCORE - State.MOVE_PENALTY;
+        assertEquals(new PlayerRecord(scoreAfterOneMove, 1),
+                loaded.getRecord("/original-levels.txt:1"));
         assertTrue(loaded.isCompleted("microban:1"));
         assertEquals(new PlayerRecord(0, 250), loaded.getRecord("microban:1"));
         State restarted = new State(levels);
         GameLogic nextGame = new GameLogic(restarted, loaded, "/original-levels.txt");
         assertEquals(0, restarted.getMoveCount());
-        assertEquals(10_000, restarted.getScore());
+        assertEquals(State.STARTING_SCORE, restarted.getScore());
         assertFalse(nextGame.isAttemptCompleted());
 
         // A second save must replace an existing file and retain the other collection.

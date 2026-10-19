@@ -17,7 +17,7 @@ PART 2: CHECKLIST
 
 
 POLISH
-[ ] README: what it is, a screenshot, how to run
+[x] README: what it is, a screenshot, how to run
 [ ] Clean up code, final commit
-[ ] Optional: package a runnable JAR
+[x] Optional: package a runnable JAR (mvn package -> target/sokoban.jar)
 =====================================================================

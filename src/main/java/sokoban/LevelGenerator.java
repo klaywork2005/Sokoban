@@ -22,12 +22,8 @@ import java.util.Random;
  * be used by two threads at once.
  */
 public final class LevelGenerator {
-    // The size and difficulty of the levels made by generate() with no arguments.
-    private static final int DEFAULT_WIDTH = 9;
-    private static final int DEFAULT_HEIGHT = 9;
-    private static final int DEFAULT_BOXES = 3;
-    private static final int DEFAULT_WALLS = 8;
-    private static final int DEFAULT_PULLS = 30;
+    // The difficulty of the levels made by generate() with no arguments.
+    private static final Difficulty DEFAULT_DIFFICULTY = Difficulty.MEDIUM;
 
     // A level that can be solved in fewer steps than this is too easy to be worth playing.
     private static final int MIN_SOLUTION_STEPS = 12;
@@ -73,9 +69,15 @@ public final class LevelGenerator {
         this.random = random;
     }
 
-    /** Make a level of the standard size and difficulty. */
+    /** Make a level of the standard size and difficulty (medium). */
     public GeneratedLevel generate() {
-        return generate(DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_BOXES, DEFAULT_WALLS, DEFAULT_PULLS);
+        return generate(DEFAULT_DIFFICULTY);
+    }
+
+    /** Make a level with the room size, box count and number of pulls of a difficulty setting. */
+    public GeneratedLevel generate(Difficulty difficulty) {
+        return generate(difficulty.width(), difficulty.height(), difficulty.boxes(),
+                difficulty.walls(), difficulty.pulls());
     }
 
     /**

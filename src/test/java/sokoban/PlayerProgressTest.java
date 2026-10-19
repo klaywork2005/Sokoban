@@ -11,17 +11,17 @@ class PlayerProgressTest {
     void onlySuccessfulMovesCostPointsIncludingPushes() {
         State state = new State(List.of(List.of("#######", "#@ $ .#", "#######")));
         GameLogic game = new GameLogic(state);
-        assertEquals(10_000, state.getScore());
+        assertEquals(State.STARTING_SCORE, state.getScore());
 
         game.moveCharacter(-1, 0); // Wall.
         game.moveCharacter(1, 1); // Diagonal.
         assertEquals(0, state.getMoveCount());
-        assertEquals(10_000, state.getScore());
+        assertEquals(State.STARTING_SCORE, state.getScore());
 
         game.moveCharacter(0, 1); // Walk.
         game.moveCharacter(0, 1); // Push onto floor.
         assertEquals(2, state.getMoveCount());
-        assertEquals(9_900, state.getScore());
+        assertEquals(State.STARTING_SCORE - 2 * State.MOVE_PENALTY, state.getScore());
         assertFalse(game.isAttemptCompleted());
 
         State blocked = new State(List.of(List.of("#@$#")));
@@ -39,7 +39,8 @@ class PlayerProgressTest {
         }
         assertTrue(state.isSolved());
         assertTrue(game.isAttemptCompleted());
-        assertEquals(new PlayerRecord(9_850, 3), progress.getRecord("original:1"));
+        int scoreAfterThreeMoves = State.STARTING_SCORE - 3 * State.MOVE_PENALTY;
+        assertEquals(new PlayerRecord(scoreAfterThreeMoves, 3), progress.getRecord("original:1"));
 
         game.moveCharacter(0, -1);
         assertEquals(3, state.getMoveCount());
@@ -48,7 +49,7 @@ class PlayerProgressTest {
         game.selectLevel(0);
         assertFalse(game.isAttemptCompleted());
         assertEquals(0, state.getMoveCount());
-        assertEquals(10_000, state.getScore());
+        assertEquals(State.STARTING_SCORE, state.getScore());
         assertTrue(progress.isCompleted("original:1"));
         game.moveCharacter(0, 1);
         assertEquals(1, state.getMoveCount());
@@ -63,7 +64,7 @@ class PlayerProgressTest {
         original.moveCharacter(0, 1);
         original.selectLevel(1);
         assertEquals(0, state.getMoveCount());
-        assertEquals(10_000, state.getScore());
+        assertEquals(State.STARTING_SCORE, state.getScore());
         assertFalse(original.isAttemptCompleted());
         assertTrue(progress.isCompleted("original:1"));
         assertFalse(progress.isCompleted("original:2"));
@@ -78,8 +79,11 @@ class PlayerProgressTest {
     void scoreStopsAtZeroButZeroPointCompletionsStillCount() {
         State state = new State(List.of(List.of("#######", "#@  $.#", "#######")));
         GameLogic game = new GameLogic(state);
-        // Waste 200 valid steps without touching the box.
-        for (int step = 0; step < 100; step++) {
+        // Walk back and forth, never touching the box, until the points have run out.
+        // A few extra steps prove that the score stops at zero instead of going negative.
+        int stepsToZero = State.STARTING_SCORE / State.MOVE_PENALTY;
+        int pairsOfSteps = stepsToZero / 2 + 50;
+        for (int pair = 0; pair < pairsOfSteps; pair++) {
             game.moveCharacter(0, 1);
             game.moveCharacter(0, -1);
         }
@@ -87,8 +91,9 @@ class PlayerProgressTest {
         game.moveCharacter(0, 1);
         game.moveCharacter(0, 1);
         game.moveCharacter(0, 1);
-        assertEquals(203, state.getMoveCount());
-        assertEquals(new PlayerRecord(0, 203), game.getProgress().getRecord("default:1"));
+        int totalSteps = pairsOfSteps * 2 + 3;
+        assertEquals(totalSteps, state.getMoveCount());
+        assertEquals(new PlayerRecord(0, totalSteps), game.getProgress().getRecord("default:1"));
     }
 
     @Test

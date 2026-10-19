@@ -142,6 +142,61 @@ class GameLogicTest {
     }
 
     @Test
+    void everyLevelGetsANameAndASaveKeyFromItsOwnCollection() {
+        List<String> level = List.of("#@$.#");
+        State state = new State(List.of(level, level, level));
+        List<LevelCollection> collections = List.of(
+                new LevelCollection("/first.txt", "First", 2),
+                new LevelCollection("/second.txt", "Second", 1));
+        GameLogic game = new GameLogic(state, new PlayerProgress(), collections);
+
+        // Numbers start again at 1 inside each collection.
+        assertEquals("/first.txt:1", game.getLevelId(0));
+        assertEquals("/first.txt:2", game.getLevelId(1));
+        assertEquals("/second.txt:1", game.getLevelId(2));
+        assertEquals("First 1", game.getLevelName(0));
+        assertEquals("First 2", game.getLevelName(1));
+        assertEquals("Second 1", game.getLevelName(2));
+    }
+
+    @Test
+    void finishingALevelSavesTheRecordUnderItsOwnCollection() {
+        List<String> level = List.of("#@$.#");
+        State state = new State(List.of(level, level));
+        PlayerProgress progress = new PlayerProgress();
+        List<LevelCollection> collections = List.of(
+                new LevelCollection("/first.txt", "First", 1),
+                new LevelCollection("/second.txt", "Second", 1));
+        GameLogic game = new GameLogic(state, progress, collections);
+
+        game.selectLevel(1);
+        game.moveCharacter(0, 1);
+
+        assertTrue(progress.isCompleted("/second.txt:1"));
+        assertFalse(progress.isCompleted("/first.txt:1"));
+    }
+
+    @Test
+    void collectionsThatDoNotMatchTheLevelsAreRejected() {
+        State state = new State(List.of(List.of("#@$.#"), List.of("#@$.#")));
+        List<LevelCollection> tooFew = List.of(new LevelCollection("/first.txt", "First", 1));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new GameLogic(state, new PlayerProgress(), tooFew));
+    }
+
+    @Test
+    void theGeneratedLevelHasNoSaveKeyOrName() {
+        State state = new State(List.of(List.of("#@$.#")));
+        GameLogic game = new GameLogic(state);
+        game.playGeneratedLevel(List.of("#@ $.#"));
+
+        assertThrows(IllegalArgumentException.class, () -> game.getLevelId(1));
+        assertThrows(IllegalArgumentException.class, () -> game.getLevelName(1));
+        assertThrows(IllegalArgumentException.class, () -> game.getLevelId(-1));
+    }
+
+    @Test
     void playingAGeneratedLevelStartsItFreshAndSelectsIt() {
         State state = new State(List.of(List.of("#@$.#")));
         GameLogic game = new GameLogic(state);
@@ -194,5 +249,234 @@ class GameLogicTest {
         game.selectLevel(0);
         game.moveCharacter(0, 1);
         assertEquals('@', state.getTile(0, 2));
+    }
+
+    // ------------------------------------------------------------------------------
+    // Undo
+    // ------------------------------------------------------------------------------
+
+    @Test
+    void undoTakesBackTheLastStepAndItsCost() {
+        State state = new State(List.of(List.of("#@  #")));
+        GameLogic game = new GameLogic(state);
+        game.moveCharacter(0, 1);
+        game.moveCharacter(0, 1);
+
+        assertTrue(game.undoMove());
+
+        // The player is back where they were after the first step, and only one step counts.
+        assertEquals('@', state.getTile(0, 2));
+        assertEquals(' ', state.getTile(0, 3));
+        assertEquals(1, state.getMoveCount());
+        assertEquals(State.STARTING_SCORE - State.MOVE_PENALTY, state.getScore());
+    }
+
+    @Test
+    void undoPutsAPushedBoxBackAndRestoresTheGoalUnderIt() {
+        State state = new State(List.of(List.of("#######", "#@$.  #", "#$ .  #", "#######")));
+        GameLogic game = new GameLogic(state);
+        game.moveCharacter(0, 1); // Push the box onto the goal: row 1 becomes "# @*  #".
+        assertEquals('*', state.getTile(1, 3));
+
+        game.undoMove();
+
+        assertEquals(List.of("#######", "#@$.  #", "#$ .  #", "#######"),
+                state.getBoardSnapshot());
+    }
+
+    @Test
+    void undoCanStepAllTheWayBackToTheStart() {
+        List<String> level = List.of("#####", "#@  #", "# $ #", "#  .#", "#####");
+        State state = new State(List.of(level));
+        GameLogic game = new GameLogic(state);
+        game.moveCharacter(0, 1);
+        game.moveCharacter(1, 0);
+        game.moveCharacter(0, -1);
+
+        // Three undos for three moves, and then there is nothing left to undo.
+        assertTrue(game.undoMove());
+        assertTrue(game.undoMove());
+        assertTrue(game.undoMove());
+        assertFalse(game.undoMove());
+
+        assertEquals(level, state.getBoardSnapshot());
+        assertEquals(0, state.getMoveCount());
+    }
+
+    @Test
+    void undoWithNothingToUndoChangesNothing() {
+        State state = new State(List.of(List.of("#@  #")));
+        GameLogic game = new GameLogic(state);
+
+        assertFalse(game.canUndo());
+        assertFalse(game.undoMove());
+        assertEquals(List.of("#@  #"), state.getBoardSnapshot());
+    }
+
+    @Test
+    void blockedMovesCannotBeUndoneBecauseTheyNeverHappened() {
+        State state = new State(List.of(List.of("#@  #")));
+        GameLogic game = new GameLogic(state);
+        game.moveCharacter(0, -1); // Straight into the wall.
+
+        assertFalse(game.canUndo());
+    }
+
+    @Test
+    void restartingOrChangingLevelForgetsTheUndoHistory() {
+        State state = new State(List.of(List.of("#@  #"), List.of("#@  #")));
+        GameLogic game = new GameLogic(state);
+
+        game.moveCharacter(0, 1);
+        game.selectLevel(0); // Restart the same level.
+        assertFalse(game.canUndo());
+
+        game.moveCharacter(0, 1);
+        game.selectLevel(1); // Switch to another level.
+        assertFalse(game.canUndo());
+        game.selectLevel(0); // And back: nothing from before is remembered.
+        assertFalse(game.canUndo());
+    }
+
+    @Test
+    void aFinishedLevelCannotBeUndone() {
+        State state = new State(List.of(List.of("#@$.#")));
+        GameLogic game = new GameLogic(state);
+        game.moveCharacter(0, 1); // Solves the level.
+        assertTrue(game.isAttemptCompleted());
+
+        // The result was already recorded, so the attempt stays frozen until a restart.
+        assertFalse(game.canUndo());
+        assertFalse(game.undoMove());
+        assertTrue(game.isAttemptCompleted());
+        assertEquals(1, state.getMoveCount());
+    }
+
+    @Test
+    void movingAgainAfterAnUndoWorksNormally() {
+        State state = new State(List.of(List.of("#@  #")));
+        GameLogic game = new GameLogic(state);
+        game.moveCharacter(0, 1);
+        game.undoMove();
+
+        game.moveCharacter(0, 1);
+        game.moveCharacter(0, 1);
+
+        assertEquals('@', state.getTile(0, 3));
+        assertEquals(2, state.getMoveCount());
+        // Both steps can still be taken back one at a time.
+        assertTrue(game.undoMove());
+        assertTrue(game.undoMove());
+        assertFalse(game.undoMove());
+    }
+
+    // ------------------------------------------------------------------------------
+    // Stuck boxes
+    // ------------------------------------------------------------------------------
+
+    @Test
+    void pushingABoxIntoADeadEndIsReportedAndUndoClearsTheWarning() {
+        // Pushing the box left puts it against the left wall, and no goal can be reached from
+        // there.
+        State state = new State(List.of(List.of(
+                "######", "#  . #", "# $  #", "#  @ #", "######")));
+        GameLogic game = new GameLogic(state);
+        assertFalse(game.hasStuckBox());
+
+        game.moveCharacter(-1, 0); // Step up so the player is beside the box.
+        game.moveCharacter(0, -1); // Push the box left, against the wall.
+        assertTrue(game.hasStuckBox());
+
+        game.undoMove();
+        assertFalse(game.hasStuckBox());
+    }
+
+    // ------------------------------------------------------------------------------
+    // Moving between levels
+    // ------------------------------------------------------------------------------
+
+    @Test
+    void nextAndPreviousLevelMoveOneStepAndStopAtTheEnds() {
+        State state = new State(List.of(
+                List.of("#@#"), List.of("# @#"), List.of("#  @#")));
+        GameLogic game = new GameLogic(state);
+
+        assertFalse(game.selectPreviousLevel()); // Already at the first level.
+        assertEquals(0, state.getCurrentLevelIndex());
+
+        assertTrue(game.selectNextLevel());
+        assertTrue(game.selectNextLevel());
+        assertEquals(2, state.getCurrentLevelIndex());
+        assertFalse(game.selectNextLevel()); // Already at the last level.
+        assertEquals(2, state.getCurrentLevelIndex());
+
+        assertTrue(game.selectPreviousLevel());
+        assertEquals(1, state.getCurrentLevelIndex());
+    }
+
+    @Test
+    void nextLevelStartsTheLevelFreshAndUnfreezesTheGame() {
+        State state = new State(List.of(List.of("#@$.#"), List.of("#@  #")));
+        GameLogic game = new GameLogic(state);
+        game.moveCharacter(0, 1);
+        assertTrue(game.isAttemptCompleted());
+
+        game.selectNextLevel();
+
+        assertFalse(game.isAttemptCompleted());
+        assertEquals(0, state.getMoveCount());
+        game.moveCharacter(0, 1);
+        assertEquals('@', state.getTile(0, 2));
+    }
+
+    @Test
+    void nextLevelCanReachTheGeneratedLevelAfterTheLastSavedOne() {
+        State state = new State(List.of(List.of("#@#"), List.of("# @#")));
+        GameLogic game = new GameLogic(state);
+        game.playGeneratedLevel(List.of("#  @#"));
+        game.selectLevel(1);
+
+        assertTrue(game.selectNextLevel());
+
+        assertTrue(state.isGeneratedLevel(state.getCurrentLevelIndex()));
+        assertFalse(game.selectNextLevel());
+    }
+
+    @Test
+    void firstUnfinishedLevelSkipsLevelsThePlayerHasCompleted() {
+        State state = new State(List.of(
+                List.of("#@#"), List.of("# @#"), List.of("#  @#")));
+        PlayerProgress progress = new PlayerProgress();
+        GameLogic game = new GameLogic(state, progress, "set");
+        progress.recordCompletion("set:1", 1000, 10);
+        progress.recordCompletion("set:3", 1000, 10);
+
+        game.selectFirstUnfinishedLevel();
+
+        // Level 2 is the first one not finished, even though level 3 is finished too.
+        assertEquals(1, state.getCurrentLevelIndex());
+    }
+
+    @Test
+    void firstUnfinishedLevelStaysPutWhenEverythingIsFinished() {
+        State state = new State(List.of(List.of("#@#"), List.of("# @#")));
+        PlayerProgress progress = new PlayerProgress();
+        GameLogic game = new GameLogic(state, progress, "set");
+        progress.recordCompletion("set:1", 1000, 10);
+        progress.recordCompletion("set:2", 1000, 10);
+
+        game.selectFirstUnfinishedLevel();
+
+        assertEquals(0, state.getCurrentLevelIndex());
+    }
+
+    @Test
+    void firstUnfinishedLevelIsTheFirstLevelForANewPlayer() {
+        State state = new State(List.of(List.of("#@#"), List.of("# @#")));
+        GameLogic game = new GameLogic(state);
+
+        game.selectFirstUnfinishedLevel();
+
+        assertEquals(0, state.getCurrentLevelIndex());
     }
 }

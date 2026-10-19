@@ -1,11 +1,17 @@
 package sokoban;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 
 /**
  * The shared game data: the saved levels, which one is selected, the board as it
  * is being played, and the move count for the current attempt.
+ *
+ * <p>Every board the player has moved away from is remembered, so a move can be undone.
+ * The move count is simply the number of remembered boards, so taking a move back also
+ * takes back its cost.
  *
  * <p>Besides the saved levels there can be one extra "generated" level, made by
  * {@link LevelGenerator}. It is listed after the saved levels, and making a new one replaces it.
@@ -25,8 +31,11 @@ public final class State {
     private List<String> generatedLevel;
     private int currentLevelIndex;
     private char[][] board;
-    // Only moves are stored. The score is calculated from them, so the two cannot disagree.
-    private int totalMoves;
+    // The boards before each successful move, newest first. A Deque is a list that is
+    // quick to add to and remove from either end; here we only use the front, like a stack
+    // of plates. Only moves are stored (as boards); the score is calculated from how many
+    // there are, so the two cannot disagree.
+    private final Deque<List<String>> history = new ArrayDeque<>();
 
     /**
      * Validate and keep a private copy of the levels, then select the first one.
@@ -122,7 +131,7 @@ public final class State {
 
     /** Start the selected level over: fresh board from the saved rows and zero moves. */
     private void resetBoard() {
-        totalMoves = 0;
+        history.clear();
         board = toTileArray(getCurrentLevel());
     }
 
@@ -153,20 +162,15 @@ public final class State {
         return board[row][column];
     }
 
-    /** Successful steps in this attempt, including steps that push a box. */
+    /** Successful steps in this attempt, including pushes. Steps that were undone do not count. */
     public int getMoveCount() {
-        return totalMoves;
-    }
-
-    /** Called by {@link GameLogic} only after the board has actually changed. */
-    public void recordMove() {
-        totalMoves++;
+        return history.size();
     }
 
     /** The starting score minus a penalty per move, never dropping below zero. */
     public int getScore() {
         // Use long arithmetic so a huge move count cannot overflow before we clamp it.
-        long score = STARTING_SCORE - (long) totalMoves * MOVE_PENALTY;
+        long score = STARTING_SCORE - (long) getMoveCount() * MOVE_PENALTY;
         if (score < 0) {
             return 0;
         }
@@ -182,9 +186,32 @@ public final class State {
         return List.copyOf(rows);
     }
 
-    /** Replace the board with a position that {@link BoardRules} has already approved. */
-    void applyBoard(List<String> rows) {
+    /**
+     * Make a move: replace the board with a position that {@link BoardRules} has already
+     * approved, and remember the old board so the move can be undone. This is the only way
+     * the move count goes up.
+     */
+    void applyMove(List<String> rows) {
+        history.push(getBoardSnapshot()); // push adds to the front of the deque.
         board = toTileArray(rows);
+    }
+
+    /** True if at least one move can be taken back. */
+    public boolean canUndo() {
+        return !history.isEmpty();
+    }
+
+    /**
+     * Go back to the board as it was before the last move.
+     *
+     * @return true if a move was undone, false if there was nothing to undo
+     */
+    boolean undoMove() {
+        if (history.isEmpty()) {
+            return false;
+        }
+        board = toTileArray(history.pop()); // pop removes the newest board from the front.
+        return true;
     }
 
     /** True when the board has boxes and every one of them is on a goal. */

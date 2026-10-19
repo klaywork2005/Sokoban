@@ -61,6 +61,66 @@ class LevelGeneratorTest {
     }
 
     @Test
+    void everyDifficultyMakesLevelsThatCanBeSolved() {
+        for (Difficulty difficulty : Difficulty.values()) {
+            for (long seed = 1; seed <= 50; seed++) {
+                LevelGenerator.GeneratedLevel level = generatorWithSeed(seed).generate(difficulty);
+
+                State state = new State(List.of(level.rows()));
+                GameLogic game = new GameLogic(state);
+                for (Direction step : level.solution()) {
+                    game.moveCharacter(step.dr(), step.dc());
+                }
+
+                assertTrue(game.isAttemptCompleted(),
+                        difficulty + " seed " + seed + " could not be solved.");
+            }
+        }
+    }
+
+    @Test
+    void everyDifficultyMakesTheRoomSizeAndBoxCountItPromises() {
+        for (Difficulty difficulty : Difficulty.values()) {
+            List<String> rows = generatorWithSeed(11).generate(difficulty).rows();
+
+            assertEquals(difficulty.height(), rows.size(), difficulty + " has the wrong height.");
+            assertEquals(difficulty.width(), rows.get(0).length(),
+                    difficulty + " has the wrong width.");
+            int boxes = count(rows, Tiles.BOX) + count(rows, Tiles.BOX_ON_GOAL);
+            assertEquals(difficulty.boxes(), boxes, difficulty + " has the wrong box count.");
+        }
+    }
+
+    @Test
+    void harderLevelsNeedMoreStepsOnAverage() {
+        double easy = averageSolutionLength(Difficulty.EASY);
+        double medium = averageSolutionLength(Difficulty.MEDIUM);
+        double hard = averageSolutionLength(Difficulty.HARD);
+
+        // One level can be unlucky, so compare the averages of many levels.
+        assertTrue(easy < medium, "Easy averages " + easy + " but medium only " + medium);
+        assertTrue(medium < hard, "Medium averages " + medium + " but hard only " + hard);
+    }
+
+    private static double averageSolutionLength(Difficulty difficulty) {
+        int total = 0;
+        int levels = 40;
+        for (long seed = 1; seed <= levels; seed++) {
+            total += generatorWithSeed(seed).generate(difficulty).solution().size();
+        }
+        return (double) total / levels;
+    }
+
+    @Test
+    void generatingWithNoArgumentsIsTheSameAsMedium() {
+        LevelGenerator.GeneratedLevel standard = generatorWithSeed(9).generate();
+        LevelGenerator.GeneratedLevel medium = generatorWithSeed(9).generate(Difficulty.MEDIUM);
+
+        assertEquals(standard.rows(), medium.rows());
+        assertEquals(standard.solution(), medium.solution());
+    }
+
+    @Test
     void levelHasTheRequestedNumberOfBoxesAndGoalsAndOnePlayer() {
         List<String> rows = generatorWithSeed(7).generate(9, 9, 4, 6, 30).rows();
 

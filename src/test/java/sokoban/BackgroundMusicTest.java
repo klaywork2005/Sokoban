@@ -25,6 +25,18 @@ class BackgroundMusicTest {
     }
 
     @Test
+    void theMusicStartsOutAudibleAndCanBeMutedAndUnmuted() {
+        BackgroundMusic music = new BackgroundMusic();
+        assertFalse(music.isMuted());
+
+        music.setMuted(true);
+        assertTrue(music.isMuted());
+
+        music.setMuted(false);
+        assertFalse(music.isMuted());
+    }
+
+    @Test
     void applyVolumeScalesEverySampleInTheRequestedRange() {
         short[] samples = {1000, -1000, 2000, 3000};
 

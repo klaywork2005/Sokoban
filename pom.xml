@@ -54,6 +54,40 @@
                     <mainClass>sokoban.Main</mainClass>
                 </configuration>
             </plugin>
+            <!--
+                mvn package also builds target/sokoban.jar: one file with the game, its levels,
+                artwork, music and the JLayer library inside. Run it with: java -jar target/sokoban.jar
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.7.1</version>
+                <configuration>
+                    <!-- The manifest tells "java -jar" which class holds main(). -->
+                    <archive>
+                        <manifest>
+                            <mainClass>sokoban.Main</mainClass>
+                        </manifest>
+                    </archive>
+                    <!-- jar-with-dependencies copies our classes and every library into one jar. -->
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <!-- Name the file sokoban.jar, and keep it apart from the plain project jar. -->
+                    <finalName>sokoban</finalName>
+                    <appendAssemblyId>false</appendAssemblyId>
+                    <attach>false</attach>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-runnable-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>

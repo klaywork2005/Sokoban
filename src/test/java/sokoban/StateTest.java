@@ -107,6 +107,49 @@ class StateTest {
     }
 
     @Test
+    void movesAreCountedAndUndoRestoresTheBoardBeforeThem() {
+        State state = new State(List.of(List.of("#@  #")));
+        assertFalse(state.canUndo());
+
+        state.applyMove(List.of("# @ #"));
+        state.applyMove(List.of("#  @#"));
+        assertEquals(2, state.getMoveCount());
+        assertTrue(state.canUndo());
+
+        // Each undo goes back one board, newest first, and takes the move count with it.
+        assertTrue(state.undoMove());
+        assertEquals(List.of("# @ #"), state.getBoardSnapshot());
+        assertEquals(1, state.getMoveCount());
+        assertTrue(state.undoMove());
+        assertEquals(List.of("#@  #"), state.getBoardSnapshot());
+        assertEquals(0, state.getMoveCount());
+        assertFalse(state.undoMove());
+        assertFalse(state.canUndo());
+    }
+
+    @Test
+    void scoreGoesBackUpWhenAMoveIsUndone() {
+        State state = new State(List.of(List.of("#@  #")));
+        state.applyMove(List.of("# @ #"));
+        assertEquals(State.STARTING_SCORE - State.MOVE_PENALTY, state.getScore());
+
+        state.undoMove();
+
+        assertEquals(State.STARTING_SCORE, state.getScore());
+    }
+
+    @Test
+    void selectingALevelForgetsTheMovesMadeOnTheOldBoard() {
+        State state = new State(List.of(List.of("#@  #"), List.of("#@  #")));
+        state.applyMove(List.of("# @ #"));
+
+        state.setCurrentLevelIndex(1);
+
+        assertFalse(state.canUndo());
+        assertEquals(0, state.getMoveCount());
+    }
+
+    @Test
     void rejectsMissingBoardsBeforeTheRendererUsesThem() {
         // Reject no levels, an empty level, and a level consisting only of whitespace.
         assertThrows(IllegalArgumentException.class, () -> new State(List.of()));

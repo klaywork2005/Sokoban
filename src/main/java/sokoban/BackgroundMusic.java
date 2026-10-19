@@ -27,6 +27,8 @@ final class BackgroundMusic {
     // volatile: the window thread writes these and the music thread reads them.
     private volatile boolean stopRequested;
     private volatile Player currentPlayer;
+    // While muted the song keeps playing silently, so un-muting carries on from the same place.
+    private volatile boolean muted;
 
     /** Start looping the song on a background thread. Call this once. */
     void start() {
@@ -43,6 +45,16 @@ final class BackgroundMusic {
         if (player != null) {
             player.close(); // Makes the play() call in playOnce() return right away.
         }
+    }
+
+    /** Silence the music (true) or let it be heard again (false). */
+    void setMuted(boolean muted) {
+        this.muted = muted;
+    }
+
+    /** True while the music is silenced. */
+    boolean isMuted() {
+        return muted;
     }
 
     /** Play the song again and again until stop() is called or the sound fails. */
@@ -65,7 +77,7 @@ final class BackgroundMusic {
         }
         // try-with-resources closes the file for us when the song ends.
         try (InputStream song = new BufferedInputStream(file)) {
-            Player player = new Player(song, new QuietAudioDevice(VOLUME));
+            Player player = new Player(song, new QuietAudioDevice());
             currentPlayer = player;
             player.play(); // Blocks until the song is over.
         }
@@ -84,18 +96,13 @@ final class BackgroundMusic {
     /**
      * A speaker connection that lowers the volume. JLayer's own device has no volume
      * control, so we shrink the samples just before they are sent to the speakers.
+     * It is an inner class (no {@code static}), so it can see whether the music is muted.
      */
-    private static final class QuietAudioDevice extends JavaSoundAudioDevice {
-        private final float volume;
-
-        QuietAudioDevice(float volume) {
-            this.volume = volume;
-        }
-
+    private final class QuietAudioDevice extends JavaSoundAudioDevice {
         @Override
         protected void writeImpl(short[] samples, int offset, int length)
                 throws JavaLayerException {
-            applyVolume(samples, offset, length, volume);
+            applyVolume(samples, offset, length, muted ? 0f : VOLUME);
             super.writeImpl(samples, offset, length);
         }
     }
