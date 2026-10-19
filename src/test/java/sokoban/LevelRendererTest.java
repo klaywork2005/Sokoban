@@ -6,6 +6,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ class LevelRendererTest {
             assertTileEquals(tile(before, 2, 2, TILE), tile(after, 2, 3, TILE));
             assertTileEquals(tile(before, 2, 3, TILE), tile(after, 2, 2, TILE));
             assertSpriteVisible(new WarehouseSprites().player, tile(after, 2, 3, TILE));
-            assertFalse(java.util.Arrays.equals(pixels(tile(before, 2, 2, TILE)),
+            assertFalse(Arrays.equals(pixels(tile(before, 2, 2, TILE)),
                     pixels(tile(after, 2, 2, TILE))), "The player must leave their old tile.");
         });
     }
@@ -58,7 +59,7 @@ class LevelRendererTest {
             assertSpriteVisible(sprites.player, tile(after, 1, 1, TILE));
             assertEquals(sprites.wall.getRGB(TILE / 2, TILE / 2),
                     tile(after, 0, 0, TILE).getRGB(TILE / 2, TILE / 2));
-            assertFalse(java.util.Arrays.equals(pixels(before), pixels(after)));
+            assertFalse(Arrays.equals(pixels(before), pixels(after)));
         });
     }
 
@@ -66,9 +67,10 @@ class LevelRendererTest {
     void smallWhiteGoalDotDisappearsUnderRedwoodCrateAndReturnsAfterThePush() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             // A straight corridor lets two pushes cover and then uncover one goal.
-            State state = new State(List.of(List.of("#######", "#@$.  #", "#######")));
+            // Keep another box unsolved so the first push does not end the attempt.
+            State state = new State(List.of(List.of("#######", "#@$.  #", "#$ .  #", "#######")));
             GameLogic game = new GameLogic(state);
-            LevelRenderer renderer = renderer(state, 7, 3, TILE);
+            LevelRenderer renderer = renderer(state, 7, 4, TILE);
             WarehouseSprites sprites = new WarehouseSprites();
             BufferedImage before = paint(renderer);
             BufferedImage unsolvedGoal = tile(before, 1, 3, TILE);
@@ -81,7 +83,7 @@ class LevelRendererTest {
             BufferedImage solvedCrate = tile(paint(renderer), 1, 3, TILE);
             assertEquals(0, whitePixels(solvedCrate), "A covered goal must have no white dot.");
             assertSpriteVisible(sprites.solvedCrate, solvedCrate);
-            assertFalse(java.util.Arrays.equals(pixels(normalCrate), pixels(solvedCrate)),
+            assertFalse(Arrays.equals(pixels(normalCrate), pixels(solvedCrate)),
                     "The crate should change to its solved wood color.");
 
             // After another push the player is on the goal, so its foot-level dot returns.

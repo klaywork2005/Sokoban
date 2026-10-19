@@ -5,37 +5,46 @@ import java.util.List;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
-/** Entry point: load data, connect the objects, and open the window. */
+/** Program entry point: loads the data, connects the objects, and opens the window. */
 public final class Main {
-    // Absolute classpath path to the collection used when the application starts.
+    // Classpath location of the level collection shown at startup.
+    // Use "/microban.txt" to play the Microban collection instead.
     private static final String LEVEL_RESOURCE = "/original-levels.txt";
 
     private Main() {
-        // No Main object is needed: Java calls the static main method directly.
+        // Java calls the static main method directly, so no Main object is ever needed.
     }
 
-    /** Assemble one shared game model and schedule the graphical interface. */
+    /** Build the one shared game model, then open the window on Swing's event thread. */
     public static void main(String[] args) {
         try {
-            // Read files before starting the UI so disk access does not freeze it.
+            // Read files before the UI starts so slow disk access cannot freeze the window.
             LevelLoader loader = new LevelLoader();
             List<List<String>> levels = loader.loadResource(LEVEL_RESOURCE);
-            // State owns the data; GameLogic applies movement rules to that same data.
             State state = new State(levels);
-            GameLogic game = new GameLogic(state);
+            ProgressStore progressStore = new ProgressStore(ProgressStore.defaultPath());
+            PlayerProgress progress = progressStore.load();
+            // The resource name keeps records for different collections apart in one save file.
+            GameLogic game = new GameLogic(state, progress, LEVEL_RESOURCE);
 
-            // Swing components must be created and updated on its event thread.
-            // The code inside () -> { ... } is a task Swing will run on that thread.
+            // Swing components must be created on the event thread. The code in
+            // () -> { ... } is a task that Swing runs there for us.
             SwingUtilities.invokeLater(() -> {
-                GameWindow window = new GameWindow(state, game);
+                GameWindow window = new GameWindow(state, game, progressStore);
                 window.setVisible(true);
+                // The music plays on its own thread, so it never slows the window down.
+                new BackgroundMusic().start();
             });
         } catch (IOException | IllegalArgumentException exception) {
-            // Report missing files or unusable level data to terminal and GUI users.
-            String message = "Could not start Sokoban: " + exception.getMessage();
-            System.err.println(message);
-            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(
-                    null, message, "Sokoban startup error", JOptionPane.ERROR_MESSAGE));
+            showStartupError(exception);
         }
+    }
+
+    /** Report missing files or unusable level data in both the terminal and a dialog box. */
+    private static void showStartupError(Exception exception) {
+        String message = "Could not start Sokoban: " + exception.getMessage();
+        System.err.println(message);
+        SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(
+                null, message, "Sokoban startup error", JOptionPane.ERROR_MESSAGE));
     }
 }

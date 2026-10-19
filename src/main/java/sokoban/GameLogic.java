@@ -1,101 +1,106 @@
 package sokoban;
 
-/** Handles movement and box pushing. This class does not use Swing. */
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Applies the player's actions to the shared {@link State}: moving, pushing boxes,
+ * choosing a level, and recording a result when a level is finished. No Swing code.
+ */
 public final class GameLogic {
-    // This is the same board the window and renderer use, not a separate game.
+    // Used by the one-argument constructor, which is handy for tests.
+    private static final String DEFAULT_COLLECTION_ID = "default";
+
+    // This is the same state the window and renderer use, not a separate copy of the game.
     private final State state;
-    // Cache the player's zero-based position so each move avoids scanning the board.
-    private int row;
-    private int column;
+    private final PlayerProgress progress;
+    // Part of every saved level ID, so different level collections keep separate records.
+    private final String collectionId;
+    // Set when the last box lands on a goal. Stays set until the level is restarted,
+    // so one attempt can only ever produce one result.
+    private boolean attemptCompleted;
 
-    /** Attach the rules to an existing state and locate its starting player. */
+    /** Attach the rules to a state, with empty records that are never saved. */
     public GameLogic(State state) {
-        this.state = state;
-        findPlayer();
-    }
-
-    /** Load a fresh board, even when selecting the level that is already active. */
-    public void selectLevel(int index) {
-        state.setCurrentLevelIndex(index);
-        findPlayer();
-    }
-
-    /** Find either a player on floor (@) or a player on a goal (+). */
-    private void findPlayer() {
-        // Keep the sentinel values if the level contains no player; moves then do nothing.
-        row = -1;
-        column = -1;
-        for (int r = 0; r < state.getRowCount(); r++) {
-            for (int c = 0; c < state.getColumnCount(r); c++) {
-                char tile = state.getTile(r, c);
-                if (tile == '@' || tile == '+') {
-                    row = r;
-                    column = c;
-                    return;
-                }
-            }
-        }
+        this(state, new PlayerProgress(), DEFAULT_COLLECTION_ID);
     }
 
     /**
-     * Attempt one orthogonal step: dr changes the row and dc changes the column.
-     * Negative rows move up; negative columns move left. Blocked moves do nothing.
+     * @param state        the shared game data
+     * @param progress     the player's saved records, updated when a level is completed
+     * @param collectionId names the level file, e.g. {@code "/original-levels.txt"}
+     */
+    public GameLogic(State state, PlayerProgress progress, String collectionId) {
+        this.state = state;
+        this.progress = progress;
+        this.collectionId = collectionId;
+    }
+
+    /** Load a fresh board and start a new attempt, even if this level is already loaded. */
+    public void selectLevel(int index) {
+        state.setCurrentLevelIndex(index);
+        attemptCompleted = false;
+    }
+
+    /**
+     * Start playing a freshly generated level, replacing the previous generated one.
+     * Generated levels are not part of the level file, so they never get a saved record.
+     */
+    public void playGeneratedLevel(List<String> rows) {
+        state.setGeneratedLevel(rows);
+        attemptCompleted = false;
+    }
+
+    /** True once every box is on a goal. Further moves are ignored until a restart. */
+    public boolean isAttemptCompleted() {
+        return attemptCompleted;
+    }
+
+    /** The player's personal records. */
+    public PlayerProgress getProgress() {
+        return progress;
+    }
+
+    /** The key for a level in the save file, such as {@code "/original-levels.txt:3"}. */
+    public String getLevelId(int index) {
+        // Level numbers in save keys start at one, just like the level picker.
+        return collectionId + ":" + (index + 1);
+    }
+
+    /**
+     * Try one step by the player. Blocked moves do nothing and cost nothing.
+     *
+     * @param dr rows to move: -1 is up, 1 is down
+     * @param dc columns to move: -1 is left, 1 is right
      */
     public void moveCharacter(int dr, int dc) {
-        // Only one-square horizontal or vertical moves are valid.
-        if (Math.abs(dr) + Math.abs(dc) != 1 || row == -1) {
+        // A finished attempt stays frozen until the player selects or resets a level.
+        if (attemptCompleted) {
             return;
         }
 
-        // Out-of-bounds coordinates read as walls through State.getTile().
-        int nextRow = row + dr;
-        int nextColumn = column + dc;
-        char nextTile = state.getTile(nextRow, nextColumn);
-
-        if (nextTile == '$' || nextTile == '*') {
-            // A push moves the box one square farther in the same direction.
-            int boxRow = nextRow + dr;
-            int boxColumn = nextColumn + dc;
-            char destination = state.getTile(boxRow, boxColumn);
-
-            // A box cannot push another box or move through a wall.
-            if (destination != ' ' && destination != '.') {
-                return;
-            }
-
-            // The combined symbols preserve whether a goal lies under the box.
-            if (destination == '.') {
-                state.setTile(boxRow, boxColumn, '*');
-            } else {
-                state.setTile(boxRow, boxColumn, '$');
-            }
-
-            // Leave the goal in place when a box moves off it.
-            if (nextTile == '*') {
-                state.setTile(nextRow, nextColumn, '.');
-            } else {
-                state.setTile(nextRow, nextColumn, ' ');
-            }
-        } else if (nextTile != ' ' && nextTile != '.') {
-            // Without a box to push, only bare floor or an uncovered goal is walkable.
-            return;
+        Optional<List<String>> newBoard = BoardRules.tryMove(state.getBoardSnapshot(), dr, dc);
+        if (newBoard.isEmpty()) {
+            return; // Blocked by a wall or a box that cannot be pushed.
         }
 
-        // Restore the terrain beneath the player's previous position.
-        if (state.getTile(row, column) == '+') {
-            state.setTile(row, column, '.');
-        } else {
-            state.setTile(row, column, ' ');
-        }
+        // Only a legal move reaches the live board and costs a penalty.
+        state.applyBoard(newBoard.get());
+        state.recordMove();
 
-        // After a push, this square now contains the terrain the box was covering.
-        if (state.getTile(nextRow, nextColumn) == '.') {
-            state.setTile(nextRow, nextColumn, '+');
-        } else {
-            state.setTile(nextRow, nextColumn, '@');
+        // The move count is updated first so the final push is included in the result.
+        if (state.isSolved()) {
+            finishAttempt();
         }
-        // Update the cached coordinates only after the board changes succeed.
-        row = nextRow;
-        column = nextColumn;
+    }
+
+    /** Freeze the board and save the result as a personal record (except for a generated level). */
+    private void finishAttempt() {
+        attemptCompleted = true;
+        int levelIndex = state.getCurrentLevelIndex();
+        if (state.isGeneratedLevel(levelIndex)) {
+            return; // A generated level has no fixed number, so there is nothing to record against.
+        }
+        progress.recordCompletion(getLevelId(levelIndex), state.getScore(), state.getMoveCount());
     }
 }

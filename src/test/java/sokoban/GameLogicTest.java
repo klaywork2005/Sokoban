@@ -44,7 +44,8 @@ class GameLogicTest {
 
     @Test
     void boxMovesOntoAndOffGoalWithoutErasingIt() {
-        State state = new State(List.of(List.of("#######", "#@$.  #", "#######")));
+        // A second unsolved box keeps the attempt active while testing a push off a goal.
+        State state = new State(List.of(List.of("#######", "#@$.  #", "#$ .  #", "#######")));
         GameLogic game = new GameLogic(state);
 
         // First push covers the goal with a box (*).
@@ -138,6 +139,40 @@ class GameLogicTest {
         game.moveCharacter(0, 1);
         assertEquals('@', state.getTile(0, 0));
         assertEquals('$', state.getTile(0, 1));
+    }
+
+    @Test
+    void playingAGeneratedLevelStartsItFreshAndSelectsIt() {
+        State state = new State(List.of(List.of("#@$.#")));
+        GameLogic game = new GameLogic(state);
+
+        game.playGeneratedLevel(List.of("#@ $.#"));
+
+        assertEquals(1, state.getCurrentLevelIndex());
+        assertEquals('@', state.getTile(0, 1));
+        assertFalse(game.isAttemptCompleted());
+    }
+
+    @Test
+    void finishingAGeneratedLevelDoesNotSaveARecord() {
+        State state = new State(List.of(List.of("#@$.#")));
+        GameLogic game = new GameLogic(state);
+        game.playGeneratedLevel(List.of("#@$.#"));
+
+        game.moveCharacter(0, 1);
+
+        assertTrue(game.isAttemptCompleted());
+        assertTrue(game.getProgress().getRecords().isEmpty());
+    }
+
+    @Test
+    void finishingASavedLevelStillSavesARecord() {
+        State state = new State(List.of(List.of("#@$.#")));
+        GameLogic game = new GameLogic(state);
+
+        game.moveCharacter(0, 1);
+
+        assertEquals(1, game.getProgress().getRecords().size());
     }
 
     @Test

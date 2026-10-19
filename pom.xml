@@ -8,6 +8,8 @@
     <groupId>org.columpio</groupId>
     <artifactId>Sokoban</artifactId>
     <version>1.0.0</version>
+    <name>Sokoban</name>
+    <description>A Swing Sokoban game.</description>
 
     <!-- Compile against Java 21 APIs and read source files as UTF-8. -->
     <properties>
@@ -15,6 +17,12 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <dependencies>
+        <!-- JLayer decodes the MP3 background music, which Java cannot play on its own. -->
+        <dependency>
+            <groupId>javazoom</groupId>
+            <artifactId>jlayer</artifactId>
+            <version>1.0.1</version>
+        </dependency>
         <!-- JUnit supplies test annotations and assertions only for test code. -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

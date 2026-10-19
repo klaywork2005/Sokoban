@@ -55,6 +55,58 @@ class StateTest {
     }
 
     @Test
+    void generatedLevelIsListedAfterTheSavedLevelsAndSelected() {
+        State state = new State(List.of(List.of("#@#"), List.of("# @#")));
+        assertEquals(2, state.getLevelCount());
+        assertFalse(state.isGeneratedLevel(1));
+
+        state.setGeneratedLevel(List.of("#@ #"));
+
+        // There is now a third level, which is selected and starts as a fresh board.
+        assertEquals(3, state.getLevelCount());
+        assertEquals(2, state.getSavedLevelCount());
+        assertEquals(2, state.getCurrentLevelIndex());
+        assertTrue(state.isGeneratedLevel(2));
+        assertEquals(List.of("#@ #"), state.getCurrentLevel());
+        assertEquals(0, state.getMoveCount());
+    }
+
+    @Test
+    void makingAnotherGeneratedLevelReplacesTheFirst() {
+        State state = new State(List.of(List.of("#@#")));
+        state.setGeneratedLevel(List.of("#@ #"));
+        state.setGeneratedLevel(List.of("#  @#"));
+
+        assertEquals(2, state.getLevelCount());
+        assertEquals(List.of("#  @#"), state.getCurrentLevel());
+    }
+
+    @Test
+    void savedLevelsCanStillBeSelectedAfterAGeneratedLevelExists() {
+        State state = new State(List.of(List.of("#@#"), List.of("# @#")));
+        state.setGeneratedLevel(List.of("#@ #"));
+
+        state.setCurrentLevelIndex(1);
+
+        assertEquals(List.of("# @#"), state.getCurrentLevel());
+        assertFalse(state.isGeneratedLevel(state.getCurrentLevelIndex()));
+        // The generated level is still there to go back to.
+        state.setCurrentLevelIndex(2);
+        assertEquals(List.of("#@ #"), state.getCurrentLevel());
+    }
+
+    @Test
+    void generatedLevelMustContainABoard() {
+        State state = new State(List.of(List.of("#@#")));
+
+        assertThrows(IllegalArgumentException.class, () -> state.setGeneratedLevel(List.of()));
+        assertThrows(IllegalArgumentException.class,
+                () -> state.setGeneratedLevel(List.of("   ")));
+        // A rejected level changes nothing.
+        assertEquals(1, state.getLevelCount());
+    }
+
+    @Test
     void rejectsMissingBoardsBeforeTheRendererUsesThem() {
         // Reject no levels, an empty level, and a level consisting only of whitespace.
         assertThrows(IllegalArgumentException.class, () -> new State(List.of()));
