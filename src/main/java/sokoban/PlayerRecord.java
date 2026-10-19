@@ -8,11 +8,11 @@ package sokoban;
  * @param fewestMoves the lowest move count reached on any completion
  */
 public record PlayerRecord(int bestScore, int fewestMoves) {
-    /** Reject impossible values, which also catches a damaged save file. */
-    public PlayerRecord {
-        if (bestScore < 0 || bestScore > State.STARTING_SCORE || fewestMoves < 0) {
-            throw new IllegalArgumentException("Invalid player record: score " + bestScore
-                    + ", moves " + fewestMoves);
-        }
+  /** Reject impossible values, which also catches a damaged save file. */
+  public PlayerRecord {
+    if (bestScore < 0 || bestScore > State.STARTING_SCORE || fewestMoves < 0) {
+      throw new IllegalArgumentException("Invalid player record: score " + bestScore
+          + ", moves " + fewestMoves);
     }
+  }
 }
