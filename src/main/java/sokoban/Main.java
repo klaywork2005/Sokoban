@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 /**
  * Program entry point: loads the data, connects the objects, and opens the
@@ -27,6 +29,8 @@ public final class Main {
    * thread.
    */
   public static void main(String[] args) {
+    // Pick the look and feel first so every window and dialog uses it.
+    useSystemLookAndFeel();
     try {
       // Read files before the UI starts so slow disk access cannot freeze the window.
       LevelLoader loader = new LevelLoader();
@@ -62,6 +66,18 @@ public final class Main {
       });
     } catch (IOException | IllegalArgumentException exception) {
       showStartupError(exception);
+    }
+  }
+
+  /**
+   * Make buttons and dialogs look like the rest of the operating system. If that
+   * look is not available, Swing keeps its own default look.
+   */
+  private static void useSystemLookAndFeel() {
+    try {
+      UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+    } catch (ReflectiveOperationException | UnsupportedLookAndFeelException exception) {
+      System.err.println("Using the default look and feel: " + exception.getMessage());
     }
   }
 
